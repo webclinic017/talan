@@ -11,5 +11,5 @@
 ### or
 
 `git clone https://github.com/beyondbond/talan`
-`cd talan
+`cd talan`
 `pip install --upgrade --user .`
