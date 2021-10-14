@@ -229,11 +229,11 @@ def pchg_calc(dx={},jTmp={},pchgTF=False):
 		dx['change'] = dx['close']-xClose
 		dx['pchg'] = dx['close']/xClose-1
 		dx['xclose'] = xClose
-	elif xChartClose is not None and pchgTF==2:
+	elif xChartClose is not None and pchgTF==2: # calc returns since inception
 		dx['change'] = dx['close']-xChartClose
 		dx['pchg'] = dx['close']/xChartClose-1
 		dx['xclose'] = xChartClose
-	elif xChartClose is not None:
+	elif xChartClose is not None: # calc returns since previous period
 		dx['xclose'] = dx['close'].shift()
 		dx['change'] = dx['close'].diff()
 		dx['pchg'] = dx['close'].pct_change()

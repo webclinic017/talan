@@ -34,8 +34,6 @@ def saferun(func):
 		except Exception as e:
 			sys.stderr.write("**ERROR: {},\nreturn {}\n".format(str(e),ret))
 			return ret
-	wrapped_f.__name__=func.__name__
-	wrapped_f.__doc__=func.__doc__
 	return wrapped_f
 
 class safeRunArg(object):
@@ -82,8 +80,6 @@ class safeRunArg(object):
 				return self.arg1
 		#wrapped_f.register = dispatcher.register
 		#update_wrapper(wrapped_f, func)
-		wrapped_f.__name__=func.__name__
-		wrapped_f.__doc__=func.__doc__
 		return wrapped_f
 
 def printerr(*args,**kwargs):
@@ -757,8 +753,8 @@ def calc_rsiOLD(prices, n=14):
 	return rsi
 
 def calc_macd(vd,nFast=12,nSlow=26,nSig=9,debugTF=False):
-	''' calc RSI & MACD based on numpy vector vd
-	return [rsi,emaSlow,emaFast,macdEma,macdCnt,macdCntCross]
+	''' calc MACD based on numpy vector vd
+	return [emaSlow,emaFast,macdEma,macdCnt,macdCntCross]
 	'''
 	emaSlow = pd.Series(vd).ewm(span=nSlow).mean()
 	emaFast = pd.Series(vd).ewm(span=nFast).mean()
@@ -767,7 +763,7 @@ def calc_macd(vd,nFast=12,nSlow=26,nSig=9,debugTF=False):
 	macdCntCross = macdEma - macdCnt #-- "signal_value_macd"
 	return [emaSlow,emaFast,macdEma,macdCnt,macdCntCross]
 
-def run_macd(df,pcol='close',nFast=12,nSlow=26,nSig=9,nRsi=14,lh=[30,70],debugTF=False):
+def run_macd(df,pcol='close',nFast=12,nSlow=26,nSig=9,nRsi=14,lh=[30,70],debugTF=False,**optx):
 	""" MACD Signal Line & Centerline Crossovers return addtional series:
 		rsi,rsi_sg,ema_slow,ema_fast,macd_ema,signal_macd,signal_value_macd,
 		crossover_macd,crossover_centerline,signal_buysell_macd
@@ -787,14 +783,15 @@ def run_macd(df,pcol='close',nFast=12,nSlow=26,nSig=9,nRsi=14,lh=[30,70],debugTF
 	"""
 	vd = df[pcol].values
 
-	##-- calc RSI
-	rsi = calc_rsi(vd,nRsi)
+	##-- calc RSI & relevant signals
+	if optx.pop('rsiTF',True):
+		rsi = calc_rsi(vd,nRsi)
+		rsiSg=np.vectorize(rsi_signal,excluded=['lh'])(rsi,lh=lh)
 
 	##-- calc MACD
 	emaSlow,emaFast,macdEma,macdCnt,macdCntCross = calc_macd(vd,nFast=nFast,nSlow=nSlow,nSig=nSig,debugTF=debugTF)
 
-	##-- calc RSI & MACD relevant signals
-	rsiSg=np.vectorize(rsi_signal,excluded=['lh'])(rsi,lh=lh)
+	##-- calc MACD relevant signals
 	macdEmaSg = np.sign(macdEma).astype(int) #-- "crossover_macd"
 	macdCntCrossSg = np.sign(macdCntCross).astype(int) #-- "crossover_centerline"
 	macdBuySell = 2*np.sign((macdCntCrossSg - macdCntCrossSg.shift(1))) #-- "signal_buysell_macd"
@@ -802,9 +799,13 @@ def run_macd(df,pcol='close',nFast=12,nSlow=26,nSig=9,nRsi=14,lh=[30,70],debugTF
 	##-- assign vectors to dataframe
 	df['price']=df[pcol]
 	colx= ["rsi","rsi_sg","ema_slow","ema_fast","macd_ema","signal_macd","signal_value_macd","crossover_macd","crossover_centerline","signal_buysell_macd"]
-	coly=[rsi,rsiSg,emaSlow,emaFast,macdEma,macdCnt,macdCntCross,macdEmaSg,macdCntCrossSg,macdBuySell]
+	coly=["rsi","rsiSg","emaSlow","emaFast","macdEma","macdCnt","macdCntCross","macdEmaSg","macdCntCrossSg","macdBuySell"]
 	for ky,val in zip(colx,coly):
-		df[ky] = val
+		if val in locals():
+			df[ky] = np.array(locals()[val])
+	if debugTF:
+		sys.stderr.write("{}\n".format(locals().keys()) )
+		sys.stderr.write("{}\n".format(df.tail().to_csv(index=False,sep='|')) )
 	return df
 
 # DEPRECATED, use calc_macd() instead
