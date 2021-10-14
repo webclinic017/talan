@@ -1,10 +1,9 @@
 # TALAN: Technical Alogorithmic Analytics
-# ==================================
 
-# TAlAN is a python package that provides a list of functions for technical analysis
-## To install
+## TALAN is a python package that provides a list of functions for technical analysis
+### To install
 `pip install git+https://github.com/beyondbond/talan --upgrade --user`
-## or
+### or
 `git clone https://github.com/beyondbond/talan`
 `cd talan`
 `pip install --upgrade --user .`
